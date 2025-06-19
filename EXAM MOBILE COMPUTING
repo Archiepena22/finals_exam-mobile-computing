@@ -1,0 +1,231 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
+
+export default function App() {
+  const [text, setText] = useState('');
+  const [items, setItems] = useState([]);
+  const [editingItem, setEditingItem] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const addItem = () => {
+    if (text.trim() === '') return;
+    if (items.find((item) => item.name.toLowerCase() === text.trim().toLowerCase())) {
+      Alert.alert('Duplicate item', 'This item already exists.');
+      return;
+    }
+    const newItem = { id: Date.now().toString(), name: text.trim() };
+    setItems([...items, newItem]);
+    setText('');
+    setSearchQuery('');
+  };
+
+  const editItem = (item) => {
+    setText(item.name);
+    setEditingItem(item);
+  };
+
+  const updateItem = () => {
+    if (!editingItem || text.trim() === '') return;
+    if (
+      items.find(
+        (item) =>
+          item.name.toLowerCase() === text.trim().toLowerCase() &&
+          item.id !== editingItem.id
+      )
+    ) {
+      Alert.alert('Duplicate item', 'Another item with this name already exists.');
+      return;
+    }
+    setItems(
+      items.map((item) =>
+        item.id === editingItem.id ? { ...item, name: text.trim() } : item
+      )
+    );
+    setText('');
+    setEditingItem(null);
+  };
+
+  const deleteItem = (id) => {
+    Alert.alert('Confirm Delete', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => setItems(items.filter((item) => item.id !== id)),
+      },
+    ]);
+  };
+
+  const filteredItems = items.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Text style={styles.header}>Simple Item Manager</Text>
+
+      {/* Search Input */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="Search..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={styles.textInput}
+          placeholderTextColor="#999"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Text style={styles.clearButtonText}>×</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Text Input */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="Enter item"
+          value={text}
+          onChangeText={setText}
+          style={styles.textInput}
+          placeholderTextColor="#999"
+          onSubmitEditing={() => (editingItem ? updateItem() : addItem())}
+        />
+        {text.length > 0 && (
+          <TouchableOpacity onPress={() => setText('')}>
+            <Text style={styles.clearButtonText}>×</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Add or Update */}
+      <TouchableOpacity
+        style={[styles.button, editingItem ? styles.updateButton : styles.addButton]}
+        onPress={editingItem ? updateItem : addItem}
+      >
+        <Text style={styles.buttonText}>
+          {editingItem ? 'Update Item' : 'Add Item'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Item List */}
+      {filteredItems.length === 0 ? (
+        <Text style={styles.noItemsText}>No items found.</Text>
+      ) : (
+        <FlatList
+          data={filteredItems}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.listItem}>
+              <Text style={styles.itemText}>{item.name}</Text>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity onPress={() => editItem(item)}>
+                  <Text style={styles.editText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteItem(item.id)}>
+                  <Text style={styles.deleteText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        />
+      )}
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 24,
+    backgroundColor: '#f0f4f8',
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#4a90e2',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 10,
+    color: '#333',
+  },
+  clearButtonText: {
+    fontSize: 24,
+    paddingHorizontal: 8,
+    color: '#aaa',
+  },
+  button: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addButton: {
+    backgroundColor: '#4a90e2',
+  },
+  updateButton: {
+    backgroundColor: '#50e3c2',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  listItem: {
+    backgroundColor: '#fff',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  editText: {
+    color: '#4a90e2',
+    marginRight: 10,
+    fontWeight: '600',
+  },
+  deleteText: {
+    color: '#e94e4e',
+    fontWeight: '600',
+  },
+  noItemsText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#888',
+  },
+});
